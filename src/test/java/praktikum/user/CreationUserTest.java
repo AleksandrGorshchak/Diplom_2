@@ -29,7 +29,6 @@ public class CreationUserTest {
 
     @After
     public void tearDown() {
-
         userClient.delete(accessToken);
     }
 
@@ -53,13 +52,20 @@ public class CreationUserTest {
     @DisplayName("Нельзя создать двух одинаковых пользователей")
     public void creationTwoIdenticalUsersIsForbidden() {
 
-        userClient.create(user);
-        ValidatableResponse response = userClient.create(user);
-        int statusCodeNegativeResponse = response.extract().statusCode();
+        ValidatableResponse responseFirstUser = userClient.create(user);
+        ValidatableResponse responseSecondUser = userClient.create(user);
+        accessToken = responseFirstUser.extract().path("accessToken");
+        int statusCodeNegativeResponse = responseSecondUser.extract().statusCode();
+
+        if (statusCodeNegativeResponse != 403) {
+            String accessToken2 = responseFirstUser.extract().path("accessToken");
+            userClient.delete(accessToken2);
+        }
+
         assertThat(statusCodeNegativeResponse, equalTo(403));
-        boolean isSuccess = response.extract().path("success");
+        boolean isSuccess = responseSecondUser.extract().path("success");
         assertFalse(isSuccess);
-        String message = response.extract().path("message");
+        String message = responseSecondUser.extract().path("message");
         assertThat("Создан ещё один пользователь с одинаковыми данными", message, (equalTo("User already exists")));
     }
 }
